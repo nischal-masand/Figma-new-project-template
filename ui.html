@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        :root {
+            --background: #ffffff;
+            --foreground: #09090b;
+            --muted: #f4f4f5;
+            --muted-foreground: #71717a;
+            --border: #e4e4e7;
+            --input: #e4e4e7;
+            --primary: #18181b;
+            --primary-foreground: #fafafa;
+            --secondary: #f4f4f5;
+            --secondary-foreground: #18181b;
+            --destructive: #ef4444;
+            --destructive-foreground: #fafafa;
+            --ring: #18181b;
+            --radius: 0.5rem;
+        }
+
+        /* Dark Mode Variables */
+        body.dark {
+            --background: #09090b;
+            --foreground: #fafafa;
+            --muted: #27272a;
+            --muted-foreground: #a1a1aa;
+            --border: #27272a;
+            --input: #27272a;
+            --primary: #fafafa;
+            --primary-foreground: #09090b;
+            --secondary: #27272a;
+            --secondary-foreground: #fafafa;
+            --destructive: #7f1d1d;
+            --destructive-foreground: #fafafa;
+            --ring: #d4d4d8;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 2rem;
+            color: var(--foreground);
+            background-color: var(--background);
+            margin: 0;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            box-sizing: border-box;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        /* Header with Title and Theme Switch */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            margin: 0;
+            color: var(--foreground);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 0rem;
+            flex-grow: 1;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .helper-text {
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+            margin-bottom: 2rem;
+        }
+
+        /* Lists */
+        .page-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .page-item,
+        .divider {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            border: 1px solid transparent;
+            position: relative;
+            transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1),
+                opacity 0.3s ease,
+                background-color 0.2s ease,
+                box-shadow 0.3s ease;
+            will-change: transform;
+        }
+
+        .page-item {
+            background-color: var(--background);
+            border-color: var(--border);
+        }
+
+        .page-item:hover:not(.dragging) {
+            background-color: var(--muted);
+        }
+
+        /* Show edit button on hover */
+        .page-item:hover .edit-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Dragging state with smooth animation */
+        .page-item.dragging,
+        .divider.dragging {
+            opacity: 0.6;
+            transform: scale(1.05);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            cursor: grabbing;
+            transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* Items being shifted */
+        .page-item.shifting,
+        .divider.shifting {
+            transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        .divider {
+            background-color: var(--muted);
+            color: var(--muted-foreground);
+            border: 1px dashed var(--border);
+            font-weight: 500;
+        }
+
+        .page-item label {
+            flex-grow: 1;
+            margin-left: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 0.5rem;
+        }
+
+        /* Editing State */
+        .page-item.editing label,
+        .page-item.editing .edit-btn,
+        .page-item.editing .delete-btn {
+            display: none;
+        }
+
+        .edit-input {
+            flex-grow: 1;
+            margin-left: 0.75rem;
+            margin-right: 0.5rem;
+            background: transparent;
+            border: 1px solid var(--primary);
+            border-radius: var(--radius);
+            padding: 0.25rem 0.5rem;
+            font-family: inherit;
+            font-size: inherit;
+            color: inherit;
+            outline: none;
+        }
+
+        /* Drag Handle */
+        .drag-handle {
+            cursor: grab;
+            color: var(--muted-foreground);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: var(--radius);
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .drag-handle:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+            color: var(--foreground);
+        }
+
+        .dragging .drag-handle {
+            cursor: grabbing;
+        }
+
+        /* Buttons */
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 450;
+            height: 2.25rem;
+            padding: 0 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        /* Primary Button (Black) */
+        button:not(.secondary):not(.delete-btn):not(.edit-btn):not(.icon-btn):not(.theme-toggle) {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border: 1px solid var(--primary);
+        }
+
+        button:not(.secondary):not(.delete-btn):not(.edit-btn):not(.icon-btn):not(.theme-toggle):hover {
+            opacity: 0.9;
+        }
+
+        /* Secondary Button (Outline/Ghost) */
+        button.secondary {
+            background-color: var(--background);
+            color: var(--foreground);
+            border: 1px solid var(--input);
+        }
+
+        button.secondary:hover {
+            background-color: var(--muted);
+        }
+
+        /* Icon Buttons (Delete/Edit) */
+        .delete-btn,
+        .edit-btn,
+        .save-btn,
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--muted-foreground);
+            padding: 0;
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .delete-btn:hover {
+            background-color: #fee2e2;
+            color: var(--destructive);
+        }
+
+        .edit-btn {
+            opacity: 0;
+            pointer-events: none;
+            /* Prevent clicks when hidden */
+            transition: opacity 0.2s;
+        }
+
+        .edit-btn:hover {
+            background-color: var(--muted);
+            color: var(--foreground);
+        }
+
+        .save-btn {
+            color: var(--primary);
+        }
+
+        .save-btn:hover {
+            background-color: var(--muted);
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--muted);
+            color: var(--foreground);
+        }
+
+        /* Action Bar (Top) */
+        .action-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .action-bar button {
+            flex: 1;
+        }
+
+        /* Bottom CTA */
+        .bottom-cta {
+            margin-top: 0;
+            width: 100%;
+            height: 4.25rem !important;
+            font-size: 0.875rem;
+        }
+
+        /* SVG Icons */
+        .icon {
+            width: 1rem;
+            height: 1rem;
+            stroke-width: 2;
+        }
+
+        /* Custom Checkbox */
+        input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 1rem;
+            height: 1rem;
+            border: 1px solid var(--input);
+            border-radius: 0.25rem;
+            background-color: var(--background);
+            cursor: pointer;
+            position: relative;
+            margin: 0;
+            display: grid;
+            place-content: center;
+            flex-shrink: 0;
+        }
+
+        input[type="checkbox"]::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+
+        input[type="checkbox"]:checked {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        input[type="checkbox"]:checked::before {
+            transform: scale(1);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--muted-foreground);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h3>Template Pages</h3>
+            <button class="theme-toggle" id="themeToggle" title="Toggle Dark Mode">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div class="helper-text">
+            Manage your pages. Drag handles to reorder. Hover to edit.
+        </div>
+
+        <div class="action-bar">
+            <button onclick="addNewPage(true)">
+                <svg class="icon" style="margin-right: 0.5rem;" xmlns="http://www.w3.org/2000/svg" width="24"
+                    height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Page
+            </button>
+            <button class="secondary" onclick="addDivider()">
+                <svg class="icon" style="margin-right: 0.5rem;" xmlns="http://www.w3.org/2000/svg" width="24"
+                    height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                </svg>
+                Add Divider
+            </button>
+        </div>
+
+        <div class="page-list" id="pageList">
+            <!-- Pages will be populated by JavaScript -->
+        </div>
+
+        <button id="createTemplate" class="bottom-cta">
+            Create Pages
+        </button>
+    </div>
+
+    <script>
+        // Default template pages
+        const DEFAULT_PAGES = [
+            "Thumbnail",
+            "🔗 Docs & Links",
+            "🎨 Moodboards",
+            "🚧 Benchmarking",
+            "---",
+            "📑 Presentation Decks",
+            "--> Deck 1",
+            "--> Deck 2",
+            "---",
+            "🔭 Explorations",
+            "--> Wireframes",
+            "--> UI/Visual design",
+            "---",
+            "✅ Final handoff (Date)",
+            "🫨 Haptics",
+            "---",
+            "🧲 Local Components"
+        ];
+
+        let currentPages = [...DEFAULT_PAGES];
+        let draggedItem = null;
+
+        // Icons as SVG strings
+        const ICONS = {
+            grip: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="19" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="19" r="1"></circle></svg>`,
+            trash: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
+            edit: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+            check: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+            sun: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
+            moon: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`
+        };
+
+        function createPageItem(page, index, autoEdit = false) {
+            const div = document.createElement('div');
+            div.className = page === "---" ? 'divider' : 'page-item';
+            div.draggable = true;
+            div.dataset.index = index;
+
+            // Add drag handlers
+            div.addEventListener('dragstart', handleDragStart);
+            div.addEventListener('dragend', handleDragEnd);
+            div.addEventListener('dragover', handleDragOver);
+            div.addEventListener('dragleave', handleDragLeave);
+            div.addEventListener('drop', handleDrop);
+
+            const dragHandle = document.createElement('span');
+            dragHandle.className = 'drag-handle';
+            dragHandle.innerHTML = ICONS.grip;
+            div.appendChild(dragHandle);
+
+            if (page === "---") {
+                const text = document.createElement('span');
+                text.textContent = 'Section Break';
+                text.style.marginLeft = '0.75rem';
+                text.style.flexGrow = '1';
+                div.appendChild(text);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = ICONS.trash;
+                deleteBtn.title = "Remove Item";
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deletePage(index);
+                };
+                div.appendChild(deleteBtn);
+            } else {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `page-${index}`;
+                checkbox.checked = true;
+
+                const label = document.createElement('label');
+                label.htmlFor = `page-${index}`;
+                label.textContent = page;
+
+                // Edit Input (Hidden by default)
+                const editInput = document.createElement('input');
+                editInput.type = 'text';
+                editInput.className = 'edit-input';
+                editInput.value = page;
+
+                // Save Button (Hidden by default, used for Edit mode)
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'save-btn';
+                saveBtn.style.display = 'none'; // Only visible in edit mode
+                saveBtn.innerHTML = ICONS.check;
+                saveBtn.title = "Save Name";
+
+                // Edit Button
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-btn';
+                editBtn.innerHTML = ICONS.edit;
+                editBtn.title = "Edit Name";
+
+                // Delete Button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = ICONS.trash;
+                deleteBtn.title = "Remove Item";
+
+                // Event Handlers
+                const startEdit = () => {
+                    div.classList.add('editing');
+                    div.draggable = false; // Disable drag while editing
+                    editInput.style.display = 'block';
+                    saveBtn.style.display = 'flex';
+                    editInput.focus();
+                    editInput.select();
+                };
+
+                const saveEdit = () => {
+                    const newName = editInput.value.trim();
+                    if (newName) {
+                        currentPages[index] = newName;
+                    } else {
+                        // If empty, revert or delete? Let's revert for now, or delete if it was "New Page"
+                        // For simplicity, just revert to old name if empty, or keep as is if it was new
+                        if (page === "New Page") {
+                            deletePage(index);
+                            return;
+                        }
+                    }
+                    updatePageList();
+                };
+
+                const cancelEdit = () => {
+                    // If it was a new page and we cancel without saving, maybe delete it?
+                    // For now, let's just re-render to exit edit mode
+                    updatePageList();
+                };
+
+                editBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    startEdit();
+                };
+
+                saveBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    saveEdit();
+                };
+
+                editInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        saveEdit();
+                    } else if (e.key === 'Escape') {
+                        cancelEdit();
+                    }
+                });
+
+                // Save on blur
+                editInput.addEventListener('blur', () => {
+                    // small delay to allow save button click to register if that was what caused blur
+                    setTimeout(saveEdit, 100);
+                });
+
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deletePage(index);
+                };
+
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                div.appendChild(editInput); // In DOM, but hidden via CSS unless .editing
+                div.appendChild(saveBtn);
+                div.appendChild(editBtn);
+                div.appendChild(deleteBtn);
+
+                // Initialize in edit mode if requested
+                if (autoEdit) {
+                    // We need to wait for it to be in the DOM
+                    requestAnimationFrame(() => startEdit());
+                } else {
+                    editInput.style.display = 'none'; // Ensure hidden initially
+                }
+            }
+
+            return div;
+        }
+
+        let lastSwapTime = 0;
+        const SWAP_THROTTLE = 150; // Milliseconds between swaps for smoother animation
+
+        function handleDragStart(e) {
+            if (this.classList.contains('editing')) {
+                e.preventDefault();
+                return;
+            }
+            draggedItem = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+
+            // Remove all drop indicators
+            document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+                el.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+
+            draggedItem = null;
+            lastSwapTime = 0;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            if (!draggedItem || this === draggedItem) return;
+
+            e.dataTransfer.dropEffect = 'move';
+
+            // Throttle the swap to make animation smoother
+            const now = Date.now();
+            if (now - lastSwapTime < SWAP_THROTTLE) return;
+
+            const allItems = [...document.querySelectorAll('#pageList > div')];
+            const draggedIdx = allItems.indexOf(draggedItem);
+            const overIdx = allItems.indexOf(this);
+
+            if (draggedIdx === -1 || overIdx === -1) return;
+
+            // Determine direction and perform swap
+            const rect = this.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+
+            let shouldSwap = false;
+            let insertBefore = false;
+
+            if (e.clientY < midpoint && draggedIdx > overIdx) {
+                // Dragging up, cursor in top half
+                shouldSwap = true;
+                insertBefore = true;
+            } else if (e.clientY >= midpoint && draggedIdx < overIdx) {
+                // Dragging down, cursor in bottom half
+                shouldSwap = true;
+                insertBefore = false;
+            }
+
+            if (shouldSwap) {
+                lastSwapTime = now;
+
+                // Perform the swap in the array
+                const [movedItem] = currentPages.splice(draggedIdx, 1);
+                const targetIdx = insertBefore ? overIdx : overIdx;
+                currentPages.splice(targetIdx, 0, movedItem);
+
+                // Update the DOM smoothly
+                updatePageList();
+            }
+        }
+
+        function handleDragLeave(e) {
+            // Remove indicators when leaving
+            if (e.target === this) {
+                this.classList.remove('drag-over-top', 'drag-over-bottom');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            // Final update is handled in dragEnd
+        }
+
+        function updatePageList(editingIndex = -1) {
+            const pageList = document.getElementById('pageList');
+            // We'll rebuild the list. If we want to preserve focus/edit state, we should be careful.
+            // But since updatePageList is called typically after an action that finishes functionality, 
+            // complete rebuild is okay, EXCEPT when we need to start editing a specific index.
+
+            pageList.innerHTML = '';
+
+            currentPages.forEach((page, index) => {
+                const autoEdit = (index === editingIndex);
+                pageList.appendChild(createPageItem(page, index, autoEdit));
+            });
+            // No preview update needed as preview is gone
+        }
+
+        function addNewPage(shouldFocus = false) {
+            currentPages.push("New Page");
+            // Render list and focus the last item
+            updatePageList(currentPages.length - 1);
+            // Scroll to bottom
+            const list = document.getElementById('pageList');
+            requestAnimationFrame(() => {
+                list.scrollTop = list.scrollHeight;
+            });
+        }
+
+        function addDivider() {
+            currentPages.push("---");
+            updatePageList();
+            const list = document.getElementById('pageList');
+            requestAnimationFrame(() => {
+                list.scrollTop = list.scrollHeight;
+            });
+        }
+
+        function deletePage(index) {
+            currentPages.splice(index, 1);
+            updatePageList();
+        }
+
+        // Theme Toggling
+        const themeToggle = document.getElementById('themeToggle');
+        let isDark = false;
+
+        themeToggle.onclick = () => {
+            isDark = !isDark;
+            document.body.classList.toggle('dark', isDark);
+
+            // Switch Icon
+            themeToggle.innerHTML = isDark ? ICONS.moon : ICONS.sun;
+        };
+
+        document.getElementById('createTemplate').onclick = () => {
+            const selectedPages = currentPages.filter((page, index) => {
+                if (page === "---") return true;
+                const checkbox = document.getElementById(`page-${index}`);
+                return checkbox && checkbox.checked;
+            });
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'create-template',
+                    templateType: "Mobile App",
+                    pages: selectedPages
+                }
+            }, '*');
+        };
+
+        // Initialize the page list
+        updatePageList();
+
+    </script>
+</body>
+
+</html>

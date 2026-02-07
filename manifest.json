@@ -1,0 +1,13 @@
+{
+  "name": "Template Generator",
+  "id": "1461651135081930664",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  },
+  "permissions": ["currentuser"],
+  "documentAccess": "dynamic-page"
+}
