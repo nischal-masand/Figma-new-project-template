@@ -1,4 +1,5 @@
-<img width="1920" height="1080" alt="thumbnail2Final" src="https://github.com/user-attachments/assets/6170797e-36b0-4648-8c47-e004f57d0d11" />
+<img width="1920" height="1080" alt="thumbnail2Final" src="https://github.com/user-attachments/assets/34777a46-0676-448b-93f5-3b799d0b734b" />
+
 
 
 # Figma-new-project-template
